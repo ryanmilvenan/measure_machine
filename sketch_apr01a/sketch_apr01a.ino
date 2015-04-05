@@ -22,14 +22,16 @@ Bounce activateButton = Bounce();
 int cancelButtonPin = 4;
 Bounce cancelButton = Bounce();
 
-int dbInterval = 10;
+int dbInterval = 20;
 
 //State
 int mode = 0;
 int dispenseType = 0;
 int measurementType = 0;
+double amount = 0.0;
 bool dispenseAcknowledged = false;
 bool measureAcknowledged = false;
+bool amountAcknowledged = false;
 bool activated = false;
 
 void setup() {
@@ -71,23 +73,19 @@ void loop() {
   switch(mode) {
       //Navigation mode
       case 0:
-        Serial.println(mode);
         lcd.setCursor(0,0);
         lcd.print(" measureMachine");
         lcd.setCursor(0,1);
         lcd.print("<-Liquid Solid->");
         checkBackNav();
         checkForwardNav();
-        checkCancel();
-        checkActivation();
       break;
       
       //Liquid Mode
       case 1:
-        Serial.println(mode);
-
-        displayLiquidDispenseType();
-        displayLiquidMeasurementType();
+        //displayLiquidDispenseType();
+        //displayLiquidMeasurementType();
+        checkAmount();
         checkCancel();
         checkActivation();
       break;
@@ -129,11 +127,137 @@ void resetState() {
   measurementType = 0;
   dispenseAcknowledged = false;
   measureAcknowledged = false;
+  amountAcknowledged = false;
+  amount = 0.0;
 }
 
+
+
+void displayLiquidDispenseType() {
+  switch(dispenseType) {
+    //Water
+    case 0:
+    lcd.setCursor(0,0);
+    lcd.print("<-    Water   ->");
+    if(!dispenseAcknowledged) {
+      lcd.setCursor(0,1);
+      lcd.print("                ");
+      checkBackDispense();
+      checkForwardDispense();
+      checkDispenseAcknowledge();
+    } else {
+      displayLiquidMeasurementType();
+    }
+    break;
+    
+    //Olive Oil
+    case 1:
+    lcd.setCursor(0,0);
+    lcd.print("<-  Olive Oil ->");
+    if(!dispenseAcknowledged) {
+      lcd.setCursor(0,1);
+      lcd.print("                ");
+      checkBackDispense();
+      checkForwardDispense();
+      checkDispenseAcknowledge();
+    } else {
+      displayLiquidMeasurementType();
+    }
+    break;
+  }
+}
+
+void displayLiquidMeasurementType() {
+  lcd.setCursor(0,1);
+  switch(measurementType) {
+    //Cups
+    case 0:
+      lcd.print("<-    Cups    ->");
+      if(!measureAcknowledged) {
+        checkBackMeasurement();
+        checkForwardMeasurement();
+        checkMeasureAcknowledge();
+      } else {
+        checkAmount();
+      }
+    break;
+    
+    //Tablespoons
+    case 1:
+      lcd.print("<-   Tblsp    ->");
+      if(!measureAcknowledged) {
+        checkBackMeasurement();
+        checkForwardMeasurement();
+        checkMeasureAcknowledge();
+      } else {
+        checkAmount();
+      }
+    break;
+  }
+}
+
+void displaySolidDispenseType() {
+
+}
+
+void displaySolidMeasurementType() {
+
+}
+
+void checkAmount() {
+  //if(dispenseAcknowledged && measureAcknowledged) {
+    lcd.setCursor(0,0);
+    lcd.print("How much?         ");
+    lcd.setCursor(0,1);
+    char temp[6];
+    String amountString;
+    dtostrf(amount,1,2, temp);
+    amountString = String(temp);
+    amountString += "          ";
+    lcd.print(amountString);
+    switch(measurementType) {
+      //Cups
+      case 0:
+        checkBackAmountCups();
+        checkForwardAmountCups();
+        checkAmountAcknowledge();
+        beginDispensingLiquidCups(amount);
+      break;
+      
+      //Tablespoons
+      case 1:
+        checkBackAmountTbls();
+        checkForwardAmountTbls();
+        lcd.print(amountString);
+        checkAmountAcknowledge();
+        beginDispensingLiquidSpoons(amount);
+      break;
+    }
+  //}
+}
+
+//Dispense Functions
+void beginDispensingSolidSpoons(double amount) {
+  if(activated) {
+  }
+}
+
+void beginDispensingLiquidSpoons(double amount) {
+  if(activated) {
+  }
+}
+
+void beginDispensingLiquidCups(double amount) {
+  if(activated) {
+    digitalWrite(pumpControlPin, HIGH);
+  }
+}
+
+
+//Button
 void checkActivation() {
   int activateValue = activateButton.read();
-  if(activateValue == LOW && !activated) {
+  if(activateValue == LOW && !activated && dispenseAcknowledged && measureAcknowledged && amountAcknowledged) {
     activated = true;
   }
 }
@@ -178,67 +302,32 @@ void checkForwardMeasurement() {
   }
 }
 
-void displayLiquidDispenseType() {
-  switch(dispenseType) {
-    //Water
-    case 0:
-    lcd.setCursor(0,0);
-    lcd.print("<-    Water   ->");
-    checkBackDispense();
-    checkForwardDispense();
-    checkDispenseAcknowledge();
-    break;
-    
-    //Olive Oil
-    case 1:
-    lcd.setCursor(0,0);
-    lcd.print("<-  Olive Oil ->");
-    checkBackDispense();
-    checkForwardDispense();
-    checkDispenseAcknowledge();
-    break;
+void checkBackAmountCups() {
+  int backValue = backButton.read();
+  if(backValue == LOW && amount > 0.0) {
+    amount -= 0.25;
   }
 }
 
-void displayLiquidMeasurementType() {
-  if(!dispenseAcknowledged) {
-    lcd.setCursor(0,1);
-    lcd.print("                ");
-  } else if(dispenseAcknowledged && !measureAcknowledged) {
-    lcd.setCursor(0,1);
-    switch(measurementType) {
-      //Cups
-      case 0:
-        lcd.print("<-    Cups    ->");
-        checkBackMeasurement();
-        checkForwardMeasurement();
-        //checkMeasureAcknowledge();
-        beginDispensingLiquidCups(10);
-      break;
-      
-      //Tablespoons
-      case 1:
-        lcd.print("<-   Tblsp    ->");
-        checkBackMeasurement();
-        checkForwardMeasurement();
-        //checkMeasureAcknowledge();
-        beginDispensingLiquidSpoons(10);
-      break;
-    }
-  } else if(dispenseAcknowledged && measureAcknowledged) {
-    lcd.setCursor(0,0);
-    lcd.print("Rdy to dispense ");
-    lcd.setCursor(0,1);
-    lcd.print(" Green to begin ");
+void checkForwardAmountCups() {
+  int forwardValue = forwardButton.read();
+  if(forwardValue == LOW && amount < 2.0) {
+    amount += 0.25;
   }
 }
 
-void displaySolidDispenseType() {
-
+void checkBackAmountTbls() {
+  int backValue = backButton.read();
+  if(backValue == LOW && amount > 0.0) {
+    amount -= 0.25;
+  }
 }
 
-void displaySolidMeasurementType() {
-
+void checkForwardAmountTbls() {
+  int forwardValue = forwardButton.read();
+  if(forwardValue == LOW && amount < 2.0) {
+    amount += 0.25;
+  }
 }
 
 void checkDispenseAcknowledge() {
@@ -249,28 +338,13 @@ void checkDispenseAcknowledge() {
 
 void checkMeasureAcknowledge() {
   int acknowledgeValue = acknowledgeButton.read();
-  if(acknowledgeValue == LOW && !measureAcknowledged)
+  if(acknowledgeValue == LOW && dispenseAcknowledged && !measureAcknowledged)
     measureAcknowledged = true;
 }
 
-void clearLine() {
-  lcd.print("                ");
-  lcd.setCursor(0,1);
-}
-
-//Dispense Functions
-void beginDispensingSolidSpoons(double amount) {
-  if(activated) {
-  }
-}
-
-void beginDispensingLiquidSpoons(double amount) {
-  if(activated) {
-  }
-}
-
-void beginDispensingLiquidCups(double amount) {
-  if(activated) {
-    digitalWrite(pumpControlPin, HIGH);
+void checkAmountAcknowledge() {
+  int acknowledgeValue = acknowledgeButton.read();
+  if(acknowledgeValue == LOW && !amountAcknowledged) {
+    amountAcknowledged == true;
   }
 }
