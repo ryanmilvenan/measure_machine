@@ -12,10 +12,10 @@ int pumpControlPin = 7;
 //int scaleVoltagePin = A0;
 
 //Control Buttons
-int backButtonPin = 0;
+int backButtonPin = 5;
 Button backButton = Button(backButtonPin, PULLUP);
 
-int forwardButtonPin = 1;
+int forwardButtonPin = 6;
 Button forwardButton = Button(forwardButtonPin, PULLUP);
 
 int acknowledgeButtonPin = 2;
@@ -37,6 +37,8 @@ State LiquidStart = State(empty, liquidStartUpdate, empty);
 
 State SolidDispenseSelect = State(cleanBottomLine, solidDispenseSelectUpdate, empty);
 State SolidMeasurementSelect = State(empty, solidMeasurementSelectUpdate, cleanDisplay);
+State SolidAmountSelect = State(empty, solidAmountSelectUpdate, cleanDisplay);
+State SolidStart = State(empty, solidStartUpdate, empty);
 
 FSM measureMachine = FSM(Nav);
 
@@ -284,8 +286,61 @@ void solidMeasurementSelectUpdate() {
     //measureIdx = ++measureIdx % NUM_MEASUREMENTS;
   }
   
+  if(ackButton.uniquePress()) {
+    measureMachine.transitionTo(SolidAmountSelect);
+  }
+  
   lcd.setCursor(0,1);
   lcd.print(measurements[1]);
+}
+
+//////////AMOUNT SELECT
+void solidAmountSelectUpdate() {
+  if(cancelButton.uniquePress()) {
+    reset();
+    measureMachine.transitionTo(Nav);
+  }
+  
+  if(ackButton.uniquePress()) {
+    measureMachine.transitionTo(SolidStart);
+  }
+  
+  lcd.setCursor(0,0);
+  lcd.print("How much?");
+  
+  if(backButton.uniquePress()) {
+    if(solAmount > 0) {
+      solAmount -= 1;
+    }
+  }
+      
+  if(forwardButton.uniquePress()) {
+    if(solAmount < 6) {
+      solAmount += 1;
+    }
+  }
+  
+  lcd.setCursor(0,1);
+  lcd.print(tbls[(int)solAmount]);
+  
+}
+
+//////////AMOUNT SELECT
+void solidStartUpdate() {
+  if(cancelButton.uniquePress()) {
+    reset();
+    measureMachine.transitionTo(Nav);
+  }
+  
+  if(activateButton.uniquePress()) {
+    solidActive = true;
+    measureMachine.transitionTo(Nav);
+  }
+  
+  lcd.setCursor(0,0);
+  lcd.print("Press Green Btn ");
+  lcd.setCursor(0,1);
+  lcd.print("to begin"); 
 }
 
 
