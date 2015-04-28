@@ -9,7 +9,8 @@ const byte NUM_MEASUREMENTS = 2;
 //I/O
 LiquidCrystal lcd(13,12,11,10,9,8);
 int pumpControlPin = 7;
-//int scaleVoltagePin = A0;
+int scaleVoltagePin = A0;
+int stimulatorPin = 1;
 
 //Control Buttons
 int backButtonPin = 5;
@@ -83,7 +84,8 @@ bool pumping = false;
 void setup() {
   Serial.begin(9600);
   pinMode(pumpControlPin, OUTPUT);
-  //pinMode(scaleVoltagePin, INPUT);
+  pinMode(scaleVoltagePin, INPUT);
+  pinMode(stimulatorPin, OUTPUT);
 
   //LCD Initialization 
   lcd.begin(16, 2);
@@ -93,6 +95,7 @@ void setup() {
 void loop() {
   dispenseLiquid();
   dispenseSolid();
+  digitalWrite(stimulatorPin, HIGH);
   measureMachine.update();
 }
 
