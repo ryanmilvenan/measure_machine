@@ -7,25 +7,25 @@ const byte NUM_SOLIDS = 2;
 const byte NUM_MEASUREMENTS = 2;
 
 //I/O
-LiquidCrystal lcd(13,12,11,10,9,8);
-int pumpControlPin = 7;
+LiquidCrystal lcd(7,6,5,4,3,2);
+int pumpControlPin = 26;
 int scaleVoltagePin = A0;
-int stimulatorPin = 1;
+int stimulatorPin = 8;
 
 //Control Buttons
-int backButtonPin = 5;
+int backButtonPin = 10;
 Button backButton = Button(backButtonPin, PULLUP);
 
-int forwardButtonPin = 6;
+int forwardButtonPin = 9;
 Button forwardButton = Button(forwardButtonPin, PULLUP);
 
-int acknowledgeButtonPin = 2;
+int acknowledgeButtonPin = 13;
 Button ackButton = Button(acknowledgeButtonPin, PULLUP);
 
-int activateButtonPin = 3;
+int activateButtonPin = 12;
 Button activateButton = Button(activateButtonPin, PULLUP);
 
-int cancelButtonPin = 4;
+int cancelButtonPin = 11;
 Button cancelButton = Button(cancelButtonPin, PULLUP);
 
 //Finite State Machine 
@@ -79,6 +79,7 @@ double solAmount = 0.0;
 bool liquidActive = false;
 bool solidActive = false;
 bool pumping = false;
+bool stimulating = false;
 
 
 void setup() {
@@ -95,22 +96,21 @@ void setup() {
 void loop() {
   dispenseLiquid();
   dispenseSolid();
-  digitalWrite(stimulatorPin, HIGH);
   measureMachine.update();
 }
 
 //Utility Functions
 void navUpdate() {
   if(backButton.uniquePress()) {
-    measureMachine.transitionTo(LiquidDispenseSelect);
+    measureMachine.transitionTo(SolidDispenseSelect);
   }
   if(forwardButton.uniquePress()) {
-    measureMachine.transitionTo(SolidDispenseSelect);
+    measureMachine.transitionTo(LiquidDispenseSelect);
   }
   lcd.setCursor(0,0);
   lcd.print(" measureMachine");
   lcd.setCursor(0,1);
-  lcd.print("<-Liquid Solid->");
+  lcd.print("<-Solid Liquid->");
 }
 
 void empty() {
@@ -427,14 +427,32 @@ void beginLiquidDispenseSpoons(double amountIn) {
 }
 
 void beginSolidDispenseSpoons(double amountIn) {
-    if(solidActive) {
-      double dispenseAmount = amountIn;
+  if(solidActive) {
+    double dispenseAmount = amountIn;
+    if(!stimulating) {
+      startTimingSolid();
+      calculateEndTimeSolidSpoons(dispenseAmount);
+      digitalWrite(stimulatorPin, HIGH);
+    } else {
+      if(millis() - solStartTime >= solEndTime) {
+        stimulating = false;
+        digitalWrite(stimulatorPin, LOW);
+        solidActive = false;
+      }
     }
+  } else {
+    digitalWrite(pumpControlPin, LOW);
+  }
 }
 
 void startTimingLiquid() {
   liqStartTime = millis();
   pumping = true;
+}
+
+void startTimingSolid() {
+  solStartTime = millis();
+  stimulating = true;
 }
 
 void calculateEndTimeLiquidCups(double amountIn) {
@@ -451,5 +469,11 @@ void calculateEndTimeLiquidSpoons(double amountIn) {
   Serial.println(duration);
   liqEndTime = duration;
   Serial.println(liqEndTime);
+}
+
+void calculateEndTimeSolidSpoons(double amountIn) {
+  double duration = (amountIn * 140)/(1.21);
+  duration = duration * 1000;
+  solEndTime = duration;
 }
 
